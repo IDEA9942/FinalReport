@@ -1,33 +1,200 @@
-\documentclass[a4paper, 10.5pt, oneside]{report}
-%------------PREAMBLE
-\include{preamble}
-\usepackage{morefloats}
-%---------------------------
-                                          
+\documentclass[11pt,a4paper,oneside]{report}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{cite}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{
+ pdftitle={Effect of Driving Location on Avalanche Statistics in the BTW Sandpile Model},
+ pdfauthor={Fangyu Shen},
+ pdfsubject={COMP90072 coursework draft, 9 October 2026}}
+\urlstyle{same}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\one}{\mathbf{1}}
+\setlength{\emergencystretch}{1.5em}
+\pagestyle{plain}
+\setcounter{tocdepth}{1}
+\setcounter{secnumdepth}{1}
+\numberwithin{equation}{chapter}
+
 \begin{document}
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+\vspace*{12mm}
+{\LARGE\scshape The University of Melbourne\par}
+\vspace{16mm}
+{\Large\scshape Draft Report\par}
+\vspace{5mm}
+\rule{\linewidth}{0.5mm}\par
+\vspace{6mm}
+{\Large The Art of Scientific Computation\par}
+\vspace{7mm}
+{\huge\bfseries
+Effect of Driving Location on Avalanche Statistics in the BTW Sandpile Model\par}
+\vspace{6mm}
+\rule{\linewidth}{0.5mm}\par
+\vspace{10mm}
+\begin{minipage}[t]{0.45\textwidth}
+\raggedright\large
+\textit{Author:}\par
+Fangyu Shen\par
+\vspace{3mm}
+\normalsize Student ID: 1278034
+\end{minipage}\hfill
+\begin{minipage}[t]{0.45\textwidth}
+\raggedleft\large
+\textit{Subject Handbook code:}\par
+COMP90072\par
+\vspace{3mm}
+\normalsize Complex Systems Project
+\end{minipage}\par
+\vfill
+{\large Faculty of Science\par}
+{\large The University of Melbourne\par}
+\vspace{8mm}
+{\large 9 October 2026\par}
+\vspace{12mm}
+{\normalsize Subject co-ordinators:\par}
+\vspace{2mm}
+{\normalsize A/Prof. Suzie Sheehy \& Prof. Christian Reichardt\par}
+\vspace{10mm}
+\end{titlepage}
+\pagenumbering{roman}
 
-%---------------------------TITLE PAGE
-\include{cover}
-%---------------------------
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+This project examines how the location of grain addition affects avalanche statistics in the Bak--Tang--Wiesenfeld sandpile. Uniform and centre-biased driving are compared on the same finite lattice with open boundaries. A queue-based simulator has been implemented, with checks for conservation and independence from toppling order. This draft sets out the model, sampling design and analysis plan. The comparison will consider avalanche frequency, toppling count, area, spatial extent and grain loss, using theoretical mean values as checks on the simulation. Numerical results and figures are reserved for a later version, after the sampling and uncertainty estimates have been reviewed.
 
-%---------------------------TABLE OF CONTENTS
+\medskip
+\noindent\textbf{Keywords:} 
+Abelian sandpile, avalanche statistics, self-organized criticality, stochastic simulation.
+
+\clearpage
 \tableofcontents
-%---------------------------
+\medskip
+\noindent\begin{minipage}{\textwidth}
+\small\textit{Draft status.} This version presents the model, implementation and analysis plan.
+Numerical results and figures are deferred; sections marked ``planned'' describe how they will be presented.
+\end{minipage}
+\clearpage
+\pagenumbering{arabic}
 
-%---------------------------MAIN BODY
-\input{chapter1}
-%---------------------------
+\chapter{Introduction}
+\label{sec:introduction}
+The Bak--Tang--Wiesenfeld (BTW) sandpile was introduced to study self-organized criticality (SOC), where slow driving and rapid relaxation produce cascades over a range of sizes without external tuning to a critical point~\cite{bak1987}. In the model, adding a single grain can trigger a sequence of topplings, or an avalanche. The local rules are simple enough to check directly, but estimating avalanche statistics requires careful sampling.
 
-%---------------------------APPENDICES
-\begin{appendices}
- \input{appendix1}
-\end{appendices}
-%---------------------------
+The research question is: \emph{How does preferential addition near the centre change avalanche statistics compared with uniform addition on the same lattice?} Only the distribution of addition sites is changed. Central additions generally occur farther from the boundary, so grains may undergo more redistribution before leaving the grid. The comparison considers both how often an avalanche starts and how large it becomes.
 
-%---------------------------BIBLIOGRAPHY
+This draft describes the simulation method and the planned comparison. The study uses one finite grid and one bias strength, with all other model rules held fixed. The numerical analysis will test whether changing the addition distribution affects avalanche frequency, size and dissipation.
+
+\chapter{Model and Methods}
+\label{sec:methods}
+\section{Model and driving rules}
+The model uses the lattice $V=\{1,\ldots,31\}^2$, with $N=961$ sites. Each site holds a nonnegative integer number of grains, referred to as its height. A site with at least four grains topples, losing four grains and sending one to each nearest neighbour. Grains directed outside the grid are lost; the toppling threshold is still four at edges and corners. Another grain is added only once the entire grid is stable.
+
+Under uniform driving, every site has addition probability $p_{\rm U}(x)=1/N$.
+
+Under centre-biased driving, the central patch is $C=\{15,16,17\}^2$ and the addition probability is
+\begin{equation}
+ p_{\rm B}(x)=\frac{0.2}{N}+\frac{0.8}{9}\one_{\{x\in C\}}.
+ \label{eq:drive}
+\end{equation}
+The uniform part of this mixture also includes the central patch, so its total addition probability is slightly greater than the central-bias weight alone. Every site on the grid can still receive a grain.
+
+For each addition, the simulator records the total number of topplings $S$, the number of distinct sites that topple $A$, the number of grains lost $D$, and the maximum Manhattan distance $R$ from the addition site to a toppled site. The mean height is recorded after stabilization. If no toppling occurs, $S=A=D=R=0$. A single-site avalanche has $R=0$, while an avalanche confined to the interior has $D=0$, so either quantity can be zero even when toppling occurs.
+
+\section{Implementation and verification}
+A first-in, first-out queue tracks unstable sites. Flags prevent duplicate queue entries, and a dictionary stores the number of topplings at each participating site. This allows the simulator to process active sites without repeatedly scanning the whole grid. By the Abelian property, changing the order of legal topplings leaves both the final stable configuration and the toppling count at each site unchanged~\cite{dhar1999}.
+
+The checks cover additions without toppling, interior and boundary topplings, reproducibility with fixed seeds, and the addition distribution. Queue, stack and scan implementations have also been compared on small grids. Stability and total mass are checked during simulation. Mass conservation requires
+
+\begin{equation}
+ M_{t+1}=M_t+1-D_t,
+ \label{eq:mass}
+\end{equation}
+where $M_t$ is the total mass after stabilization. These checks test the update rules and bookkeeping. The theoretical means provide an additional reference for assessing the simulation.
+
+\section{Sampling and measurements}
+The sampling design uses three independent runs for each driving rule, each starting from an empty lattice. Pilot runs and successive block averages of mean height are used to assess the initial transient. The initial target for the main comparison is 20,000 retained additions per run after burn-in. The burn-in period and retained sample length will be reviewed before the final analysis.
+
+Means of $S$ and $D$ include additions that cause no toppling, whereas avalanche-size distributions use only events with $S>0$. The frequency of additions without an avalanche will be reported separately. Random seeds, raw event records and analysis scripts are saved so that the calculations can be reproduced.
+
+\section{Theoretical benchmarks}
+The toppling matrix $\Delta$ has diagonal entries four and entries $-1$ between adjacent sites. For an addition-probability vector $\bm p$, stationarity requires the mean change in height to vanish. This gives
+\begin{equation}
+ \E[S]=\one^{\mathsf T}\Delta^{-1}\bm p,
+ \qquad \E[D]=1.
+ \label{eq:theory}
+\end{equation}
+This relation follows from the mean response of the sandpile to an added grain~\cite{dhar1999}. It provides an independent benchmark: mean toppling counts can be calculated from the lattice and addition probabilities, then compared with the simulation estimates.
+
+\chapter{Baseline Results}
+\label{sec:baseline}
+\section{Baseline checks (planned)}
+This section will report mean height over time and compare the mean toppling count and mean grain loss with their theoretical benchmarks. Results from independent runs will be used to assess variation between seeds and the effect of the retained sampling window.
+
+\section{Distributions and correlations (planned)}
+The baseline analysis will examine the distributions of toppling count, area, loss and spatial extent, and the correlations between these quantities.
+
+\chapter{Extension Comparison}
+\label{sec:extension}
+\section{Mean statistics and avalanche frequency (planned)}
+The comparison will distinguish changes in the probability of triggering an avalanche from changes in its size once toppling begins. The mean toppling count can be written as
+\begin{equation}
+ \E[S]=\Pr(S>0)\,\E[S\mid S>0].
+ \label{eq:decomposition}
+\end{equation}
+Reporting both terms will help identify how the driving rule affects mean avalanche activity.
+
+\section{Distributions and boundary loss (planned)}
+The final report will compare avalanche-size distributions under the two driving rules. It will also report the fraction of avalanches with no grain loss and the mean loss among events that reach the dissipative boundary.
+
+\section{Area, extent and correlations (planned)}
+The comparison will examine avalanche area and spatial extent, with correlations calculated separately within each driving rule.
+
+\chapter{Discussion and Next Steps}
+\label{sec:discussion}
+\section{Interpretation of the driving effect}
+Every site has positive addition probability under both driving rules. The two rules therefore have the same stationary distribution, uniform over recurrent stable configurations~\cite{dhar1999}. What changes is the location at which a stable configuration is disturbed. Avalanche statistics can consequently differ even when the stationary height distribution is unchanged. This distinction will guide the interpretation of the numerical comparison.
+
+\section{Uncertainty and limitations}
+The analysis will examine sensitivity to burn-in, retained sample length and random seed. Block averages will be used to assess uncertainty, with attention to dependence between successive additions. Large avalanches may be rare in the retained samples, so estimates in the tails will require particular care. A single lattice size cannot establish universal scaling.
+
+\section{Next steps}
+The next task is to review the retained samples and uncertainty estimates, extending the simulations where necessary. Selected figures and numerical comparisons will then be added to the report. Exploratory power-law fitting will be considered only if enough tail observations are available to justify a fitting range and compare alternative distributions~\cite{clauset2009}.
+
+\chapter{Current Progress and Next Steps}
+The model has been implemented and checked, and preliminary simulation records and analysis scripts are available. These are retained separately while this version focuses on the methods and analysis plan.
+
+Before the final report, the sampling and uncertainty estimates will be reviewed and the distribution and correlation analyses completed. The resulting figures and tables will be added with their interpretation. Feedback on the experimental scope and methods will help determine which comparisons need further attention.
+
+\clearpage
+\phantomsection
 \addcontentsline{toc}{chapter}{Bibliography}
-\bibliographystyle{abbrv}
-\bibliography{biblio}
-%---------------------------
+\begin{thebibliography}{9}
+
+\bibitem{bak1987}
+P.~Bak, C.~Tang, and K.~Wiesenfeld.
+Self-organized criticality: An explanation of the $1/f$ noise.
+\emph{Physical Review Letters}, 59:381--384, 1987.
+\href{https://doi.org/10.1103/PhysRevLett.59.381}{doi:10.1103/PhysRevLett.59.381}.
+
+\bibitem{dhar1999}
+D.~Dhar.
+The abelian sandpile and related models.
+\href{https://arxiv.org/abs/cond-mat/9808047}{arXiv:cond-mat/9808047}, revised 1998.
+Published in \emph{Physica A}, 263, 1999.
+\href{https://doi.org/10.1016/S0378-4371(98)00493-2}{doi:10.1016/S0378-4371(98)00493-2}.
+
+\bibitem{clauset2009}
+A.~Clauset, C.~R.~Shalizi, and M.~E.~J.~Newman.
+Power-law distributions in empirical data.
+\emph{SIAM Review}, 51(4):661--703, 2009.
+\href{https://doi.org/10.1137/070710111}{doi:10.1137/070710111}.
+
+\end{thebibliography}
 
 \end{document}
