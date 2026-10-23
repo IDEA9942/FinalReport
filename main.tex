@@ -14,6 +14,7 @@
 \usepackage{caption}
 \usepackage{titlesec}
 \usepackage{placeins}
+\usepackage{needspace}
 \usepackage{enumitem}
 \usepackage{listings}
 \usepackage{cite}
@@ -37,6 +38,13 @@
 \setlength{\parskip}{3pt}
 \setlist{itemsep=2pt,topsep=4pt}
 \captionsetup{font=small,labelfont=bf}
+% Let text fill space around floats while protecting paragraph endings.
+\setlength{\textfloatsep}{12pt plus 2pt minus 2pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{12pt plus 2pt minus 2pt}
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
 \titleformat{\chapter}[display]{\normalfont\LARGE\bfseries}
   {\large\chaptertitlename\ \thechapter}{6pt}{}
 \titlespacing*{\chapter}{0pt}{0pt}{16pt}
@@ -148,12 +156,16 @@ Uniform driving has $p_\U(x)=1/N$. For the central patch $C=\{15,16,17\}^2$, cen
 \end{equation}
 The whole-grid branch also includes $C$, so the total probability of selecting a site in $C$ under centre-biased driving is $0.8+0.2(9/961)=0.801873$, compared with $9/961=0.009365$ under uniform driving. Every site has a positive probability of receiving a grain.
 
+Figure~\ref{fig:model} illustrates the toppling rule, boundary loss and the two addition-site distributions.
+\input{results/model_schematic.tex}
+
 For one addition at $a$, let $n_x$ be the number of topplings at $x$ and $T=\{x:n_x>0\}$. The recorded quantities are defined in Table~\ref{tab:definitions}.
 
 \begin{table}[htbp]
 \centering
 \caption{Event measurements. Distances are measured in lattice spacings and loss in grains. Repeated topplings contribute to $S$ but not to $A$.}
 \label{tab:definitions}
+\renewcommand{\arraystretch}{1.2}
 \begin{tabularx}{\linewidth}{@{}llY@{}}
 \toprule
 Quantity & Definition & Interpretation\\
@@ -167,11 +179,7 @@ Mean height $\bar h$ & $N^{-1}\sum_x h_x$ & Stored mass per site after stabiliza
 \end{tabularx}
 \end{table}
 
-Manhattan distance measures separation in nearest-neighbour steps, consistent with the four-neighbour connectivity, rather than the path actually travelled by a grain. If $T$ is empty, $S=A=D=R=0$. A single-site avalanche has $R=0$, and an avalanche confined to the interior can have $D=0$.
-
-Figure~\ref{fig:model} illustrates the toppling rule, boundary loss and the two addition-site distributions.
-\input{results/model_schematic.tex}
-\FloatBarrier
+Manhattan distance measures separation in nearest-neighbour steps, consistent with the four-neighbour connectivity, rather than the path actually travelled by a grain. If $T$ is empty, \mbox{$S=A=D=R=0$}. A single-site avalanche has $R=0$, and an avalanche confined to the interior can have $D=0$.
 
 \section{Boundaries, stationarity and mean height}
 \label{sec:stationarity}
@@ -196,6 +204,7 @@ Using the positive-diagonal convention, the toppling matrix and update are
  \qquad T_x h=h-\Delta e_x\quad(h_x\geq4).
  \label{eq:matrix}
 \end{equation}
+\Needspace{6\baselineskip}
 Here heights are represented by column vectors, and $\Delta$ is symmetric. The handout uses the opposite sign convention: its matrix is $B=-\Delta$, and its update is $h+B e_x$. The four conditions in the handout have the following interpretations:
 \begin{enumerate}
  \item $B_{xy}=B_{yx}\geq0$ for $x\ne y$: a toppling transfers nonnegative amounts to other sites, with symmetric transfers on this undirected lattice. Symmetry is a property of this model, but is not required for every directed Abelian sandpile.
@@ -237,7 +246,6 @@ To connect this stationary measure to avalanche statistics, note that an avalanc
 \end{equation}
 Although $\pi$ is the same for both rules, the weights $p(x)$ differ, and the height probabilities vary with position near the boundary. Avalanche frequency and size may therefore change even though the stationary height field has the same probability law.
 
-\clearpage
 \section{Exact finite-lattice benchmarks}
 \label{sec:benchmarks}
 The vector update for one event is $h_t-h_{t-1}=e_{a_t}-\Delta n_t$. Taking stationary expectations yields
@@ -260,7 +268,10 @@ The same identity gives the mean response at other bias strengths without furthe
 Here $\E_C[S]=p_C^{\mathsf T}q$ is the mean response to an addition in the central patch under the shared stationary measure. For this lattice and patch, the Poisson solution gives
 \input{results/linear_response_report.tex}
 At $w=0.8$, this expression reproduces the centre-biased benchmark above.
+\begingroup
+\pgfplotsset{every axis post/.append style={height=5.0cm}}
 \input{results/response_report.tex}
+\endgroup
 \FloatBarrier
 
 \chapter{Computational Methods}
@@ -280,13 +291,10 @@ Simulations under both driving rules start from an empty lattice. The pilot runs
 
 The primary summaries use additions 20,001--40,000 from each run after discarding the first 20,000 additions, giving 20,000 measured additions per run and 60,000 primary observations per driving rule. Windows 10,001--30,000, 40,001--60,000 and 20,001--60,000 are used to assess sensitivity to the observation period, although their overlap means that they are not independent replications. The block-averaged heights suggest that a burn-in of 20,000 additions is conservative relative to the visible filling transient.
 
-\begin{samepage}
 In the primary windows, the observed fractions of additions in the central patch are 0.00882 and 0.80002 for uniform and centre-biased driving, respectively, compared with the intended probabilities of 0.009365 and 0.801873.
 
 The raw data fields are
 \texttt{step, site, S, A, D, R, mass}, where \texttt{site} is a zero-based flattened index. All observations come from the simulations, independently of the theoretical benchmark values. Appendix~\ref{app:reproduce} gives a brief reproduction guide, while \texttt{README.md} details the commands and inputs.
-
-\end{samepage}
 
 \section{Statistical summaries and exploratory fits}
 \label{sec:statistics}
@@ -333,7 +341,10 @@ Of the 60,000 additions in the primary window under uniform driving, 25,529 trig
 
 Figure~\ref{fig:distributions} shows all four survival functions. The curves for $S$ and $A$ span a broad range and turn downward for the largest events. Area is bounded by 961 sites, and the largest observed baseline area is 836. The loss distribution has a point mass at zero: 52.45\% of baseline avalanches lose no grains. Positive losses follow a discrete, right-skewed distribution with an observed maximum of 55. Extent is an integer distance bounded by 60 on this grid; 14.25\% of baseline avalanches have zero extent, and the largest observed value is 54. These differences in support and probability at zero call for separate distributional descriptions of the four observables.
 
+\begingroup
+\pgfplotsset{every axis post/.append style={height=6.5cm}}
 \input{results/distribution_plot.tex}
+\endgroup
 
 \clearpage
 \section{Exploratory distribution fitting}
@@ -351,7 +362,10 @@ The geometric alternative has a smaller CDF distance in seven of the eight displ
 \label{sec:comparison}
 Figure~\ref{fig:corecomparison} compares the mean responses under the two driving rules over the same primary window. The mean number of topplings rises from 38.0043 to 67.5938, an increase of 77.86\%. The theoretical ratio of the means is 1.77065, close to the measured ratio of 1.77858. Under centre-biased driving, the observed mean differs from the exact value of 67.6840 by $-0.13\%$.
 
+\begingroup
+\pgfplotsset{every axis post/.append style={height=6.0cm}}
 \input{results/core_comparison_plot.tex}
+\endgroup
 
 Table~\ref{tab:metrics} provides supplementary avalanche statistics for the same window, including the triggering probability and conditional size summaries.
 \input{results/metrics_table.tex}
@@ -448,6 +462,12 @@ Conservation checks, exact theoretical means, independent tests of update order 
 \FloatBarrier
 
 \appendix
+% Compact back matter, with each appendix retaining its chapter identity.
+\clearpage
+\titleclass{\chapter}{straight}
+\titleformat{\chapter}[hang]{\normalfont\Large\bfseries}
+  {\chaptertitlename\ \thechapter}{0.75em}{}
+\titlespacing*{\chapter}{0pt}{18pt plus 3pt minus 2pt}{10pt}
 \chapter{Termination and Uniqueness of Stabilization}
 \label{app:proofs}
 This appendix presents the arguments for Questions 11--12 using the positive-diagonal convention in Eq.~\eqref{eq:matrix}. The proofs below apply the general Abelian framework developed in Refs.~\cite{dhar1990,jarai2018} to the finite connected grid.
@@ -486,6 +506,7 @@ The site therefore cannot legally topple, giving a contradiction. Thus the secon
 
 The stable final configuration and the multiset of topplings are unique. An arbitrary permutation of topplings need not be legal, but every complete legal ordering yields the same result. Queue, stack and scan implementations can therefore be compared without requiring identical intermediate trajectories.
 
+\clearpage
 \chapter{Additional Sampling Diagnostics}
 \label{app:diagnostics}
 These diagnostics supplement the pooled results with variation across the three runs and standard-error estimates for several block lengths. The estimates require sufficiently weak correlations between blocks.
@@ -493,6 +514,7 @@ These diagnostics supplement the pooled results with variation across the three 
 \input{results/block_table.tex}
 \FloatBarrier
 
+\Needspace{14\baselineskip}
 \chapter{Reproduction Guide}
 \label{app:reproduce}
 The code submission contains the Python scripts, tests, dependency list, report source, model schematic and historical timing record. Trajectories and derived results are regenerated from fixed random seeds using the commands in \texttt{README.md}. The computational environment used Python 3.12.14 and NumPy 2.3.5. After running the simulation and analysis commands, rebuild the report from the directory containing \texttt{main.tex}, using a LaTeX distribution with the packages listed in that file:
@@ -504,6 +526,7 @@ latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
 The \texttt{README.md} in the same directory documents dependencies, installation, simulation and analysis commands, validation procedures, the data schema, and the scripts and inputs used to generate each reported result. Follow those instructions to reproduce the numerical results or regenerate the trajectories. Regenerating data replaces the corresponding saved outputs.
 \FloatBarrier
 
+\clearpage
 \chapter{Coverage of Project Questions}
 \label{app:coverage}
 The table below identifies the section or appendix containing the response to each project question.
@@ -532,7 +555,7 @@ Q12 & Termination and unique stabilization & Appendix~\ref{app:proofs}\\
 \end{table}
 \FloatBarrier
 
-\clearpage
+\Needspace{16\baselineskip}
 \phantomsection
 \addcontentsline{toc}{chapter}{Bibliography}
 \begin{thebibliography}{9}
